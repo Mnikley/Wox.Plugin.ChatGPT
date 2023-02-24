@@ -12,9 +12,9 @@ config = {
     "api_key": "place-your-api-key-here",
     "model": "text-davinci-003",  # check https://platform.openai.com/docs/models/ for other models
     "engine": None,
-    "max_tokens": 16,  # maximum amount of returned tokens
+    "max_tokens": 32,  # maximum amount of returned tokens
     "temperature": 0.15,  # increases randomness
-    "stream": False,  # stream response per token instead of a single string
+    "stream": True,  # stream response per token instead of a single string
     "echo": False,
     "session_spent": 0,
     "session_spent_text": "",
