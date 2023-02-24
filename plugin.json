@@ -1,13 +1,13 @@
 {
-    "ID":"2f4e384e-76ce-45c3-aea2-b16f5e5c328f",
-    "ActionKeyword":"h",
-    "Name":"Hello World Python",
-    "Description":"Hello World",
-    "Author":"Wox",
+    "ID":"1",
+    "ActionKeyword":"gpt",
+    "Name":"Chat GPT API",
+    "Description":"Chat GPT API",
+    "Author":"MNikley",
     "Version":"1.0",
     "Language":"python",
-    "Website":"https://github.com/Wox-launcher/Wox",
-    "IcoPath":"Images\\app.png",
+    "Website":"https://github.com/MNikley/Wox.Plugin.ChatGPT",
+    "IcoPath":"Images\\chatgpt.png",
     "ExecuteFileName":"main.py",
-    "Disabled": true
+    "Disabled": false
 }

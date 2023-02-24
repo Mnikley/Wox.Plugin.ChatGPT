@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+    <style>
+        body {
+            background-color: rgba(52, 53, 65);
+            color: rgba(236, 236, 241, 100%);
+            font-family: Arial, Helvetica, sans-serif;
+        }
+
+        .header {
+            display: flex;
+            flex-direction: row;
+            justify-content: center;
+            margin: 20vh auto 4rem;
+            font-size: 2.25rem;
+            font-weight: 600;
+            line-height: 2.5rem;
+        }
+
+        .success {
+            color: #19c37d;
+        }
+
+        .error {
+            color: #ef4146;
+        }
+
+        .disabled {
+            color: #acacbe;
+        }
+
+        .secondary {
+            color: #6e6e80;
+        }
+
+        p {
+            display: flex;
+            justify-content: center;
+            margin-right: auto;
+            margin-left: auto;
+        }
+
+        .card {
+            display: flex;
+            justify-content: center;
+            margin-right: auto;
+            margin-left: auto;
+            border-radius: 0.375rem;
+            border: 0 solid #d9d9e3;
+            box-sizing: border-box;
+            padding: 0.75rem;
+            background-color: hsla(0, 0%, 100%, .05);
+            width: 75%;
+            height: fit-content;
+        }
+
+    </style>
+    <title>ChatGPT API</title>
+</head>
+
+<body>
+
+<div class="header">ChatGPT API</div>
+<div>
+    <p><b>Input: </b>&nbsp
+        <span id="input" class="success"></span>
+    </p>
+</div>
+<div id="result" class="card"></div>
+<div class="secondary">
+    <p>Status:&nbsp
+        <span id="status" class="disabled"></span>
+    </p>
+    <p>Cost:&nbsp
+        <span id="cost" class="disabled"></span>
+    </p>
+    <p id="config"></p>
+</div>
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+<script>
+    const interval = 500;  // time in ms to fetch new data from backend
+
+    function getResults() {
+        $.ajax({
+            url: "/update",
+            type: "GET",
+            dataType: "json",
+            success: function (r) {
+                document.getElementById("input").innerHTML = r.config.input_prompt;
+                document.getElementById("result").innerHTML = r.config.completion_text;
+                document.getElementById("cost").innerHTML = r.config.session_spent_text;
+                document.getElementById("config").innerHTML = "<pre>" + JSON.stringify(r.config, null, 2) + "</pre>";
+                if (!r.config.done) {
+                    document.getElementById("status").innerHTML = "working ..";
+                } else {
+                    clearInterval(intervalRunner);
+                    document.getElementById("status").innerHTML = r.config.status;
+                }
+            }
+        });
+    }
+
+    let intervalRunner = setInterval(getResults, interval);
+</script>
+
+</body>
