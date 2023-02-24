@@ -18,7 +18,7 @@ A simple wrapper written in Python, HTML and CSS to utilize the OpenAI API that 
    }
    ```
  5. Copy the entire folder `Wox.Plugin.ChatGPT` to your Wox `Plugins` folder (per default: `C:\Users\MNikley\AppData\Local\Wox\app-1.4.1196\Plugins`) and make sure the plugin is enabled. Restart Wox afterwards
- 6. Run queries by entering `gpt [QUERY]`, e.g. `gpt what is love`
+ 6. Run queries by entering `gpt [QUERY]` in your Wox launcher prompt, e.g. `gpt what is love`
 
 Alternatively you can run the script directly via `python app.py [QUERY]`
 
