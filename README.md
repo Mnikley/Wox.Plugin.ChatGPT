@@ -4,7 +4,8 @@
 A simple wrapper written in Python, HTML and CSS to utilize the OpenAI API that can be used as a Plugin for the awesome [Wox launcher](https://github.com/Wox-launcher/Wox). Uses Flask to display the results in a ChatGPT-themed locally-hosted webpage. Only tested on Windows with Python 3.10.
 
 ## Screenshots
-![chatgpt_wox_plugin](https://user-images.githubusercontent.com/75040444/221225355-8c28b5bc-f390-4bcf-905d-fec023554623.gif)
+![chatgpt_wox_plugin](https://user-images.githubusercontent.com/75040444/222425839-d88ef5a7-9074-473c-8cb1-12b42700f905.gif)
+
 
 ## Quickstart
  1. Clone the repo: `git clone https://www.github.com/Mnikley/Wox.Plugin.ChatGPT`
@@ -24,11 +25,18 @@ Alternatively you can run the script directly via `python app.py [QUERY]`
 
 ## Configuration
  - `api_key:` Your OpenAI API key
- - `model:` Used model (default: `text-davinci-003`, check https://platform.openai.com/docs/models/)
+ - `model:` Used model (default: `gpt-3.5-turbo`, check https://platform.openai.com/docs/models/)
  - `max_tokens:` Maximum amount of returned tokens (longer = more expensive; default: `32`)
  - `temperature:` Increase randomness (default: `0.15`)
  - `stream:`: Stream response or wait for entire processed text (default: `True`)
- - `price_per_token:` Used for estimating costs (default: `0.1200 / 1000` based on text-davinci-003)
+ - `price_per_token:` Used for estimating costs (default: `0.002 / 1000` based on gpt-3.5-turbo)
 
-## Next steps
-- add Markdown support
+## Run via command line
+  1. Run app:
+   ```
+   python app.py
+   ```
+  2. Send queries via API endpoint `/openai_call/QUERY`, e.g.:
+  ```
+  http://127.0.0.1:5000/openai_call/how%20much%20is%20the%20fish
+  ```
