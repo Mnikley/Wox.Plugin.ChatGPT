@@ -12,7 +12,7 @@ from markdown import markdown
 config = {
     "api_key": "insert-your-openai-api-key-here",
     "model": "gpt-3.5-turbo",  # check https://platform.openai.com/docs/models/ for other models
-    "max_tokens": 64,  # maximum amount of returned tokens
+    "max_tokens": 512,  # maximum amount of returned tokens
     "temperature": 0.15,  # increases randomness
     "stream": True,  # stream response per token instead of a single string
     "session_spent": 0,
