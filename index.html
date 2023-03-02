@@ -94,11 +94,9 @@
                 document.getElementById("result").innerHTML = r.config.completion_text;
                 document.getElementById("cost").innerHTML = r.config.session_spent_text;
                 document.getElementById("config").innerHTML = "<pre>" + JSON.stringify(r.config, null, 2) + "</pre>";
-                if (!r.config.done) {
-                    document.getElementById("status").innerHTML = "working ..";
-                } else {
+                document.getElementById("status").innerHTML = r.config.status;
+                if (r.config.done && r.config.stop_after_one_request) {
                     clearInterval(intervalRunner);
-                    document.getElementById("status").innerHTML = r.config.status;
                 }
             }
         });

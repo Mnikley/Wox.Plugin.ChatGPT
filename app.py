@@ -9,17 +9,15 @@ import webbrowser
 import psutil
 
 config = {
-    "api_key": "place-your-api-key-here",
-    "model": "text-davinci-003",  # check https://platform.openai.com/docs/models/ for other models
-    "engine": None,
-    "max_tokens": 32,  # maximum amount of returned tokens
+    "api_key": "insert-your-api-key-here",
+    "model": "gpt-3.5-turbo",  # check https://platform.openai.com/docs/models/ for other models
+    "max_tokens": 64,  # maximum amount of returned tokens
     "temperature": 0.15,  # increases randomness
     "stream": True,  # stream response per token instead of a single string
-    "echo": False,
     "session_spent": 0,
     "session_spent_text": "",
     "status": "N/A",
-    "price_per_token": 0.1200 / 1000,  # estimation of cost, based on text-davinci-003 model
+    "price_per_token": 0.002 / 1000,  # estimation of cost, based on text-davinci-003 model
     "stop_after_one_request": False,
     "done": False,
     "completion_text": "",
@@ -58,16 +56,28 @@ def openai_call_thread():
     config["done"] = False
     collected_events = []
     start_time = time.time()
+    response = None
+    chat_completion = False
+
+    # GPT-3.5-turbo requires a different method ChatCompletion with an altered response
+    if config["model"] == "gpt-3.5-turbo":
+        chat_completion = True
 
     # check https://platform.openai.com/docs/api-reference/completions/create for arguments
     try:
-        response = openai.Completion.create(model=config["model"],
-                                            engine=config["engine"],
-                                            prompt=config["input_prompt"],
-                                            echo=config["echo"],
-                                            temperature=config["temperature"],
-                                            max_tokens=config["max_tokens"],
-                                            stream=config["stream"])
+        if chat_completion:
+            response = openai.ChatCompletion.create(model=config["model"],
+                                                    messages=[{"role": "user",
+                                                               "content": config["input_prompt"]}],
+                                                    temperature=config["temperature"],
+                                                    max_tokens=config["max_tokens"],
+                                                    stream=config["stream"])
+        else:
+            response = openai.Completion.create(model=config["model"],
+                                                prompt=config["input_prompt"],
+                                                temperature=config["temperature"],
+                                                max_tokens=config["max_tokens"],
+                                                stream=config["stream"])
     except Exception as exc:
         config["done"] = True
         config["status"] = f"<span class='error'>Error: {exc}</span>"
@@ -76,22 +86,36 @@ def openai_call_thread():
     if config["stream"]:
         for event in response:
             collected_events.append(event)
-            config["completion_text"] += event["choices"][0]["text"]
-        config["session_spent_text"] = "N/A when using stream=True"
+            if chat_completion:
+                if event["choices"][0]["delta"].get("content"):
+                    config["completion_text"] += event["choices"][0]["delta"]["content"]
+            else:
+                config["completion_text"] += event["choices"][0]["text"]
+        used_tokens = len(collected_events)
+        # config["session_spent_text"] = "N/A when using stream=True"
         config["done"] = True
 
     else:
-        config["completion_text"] = response["choices"][0]["text"]
+        if chat_completion:
+            config["completion_text"] = response["choices"][0]["message"]["content"]
+            # additional returns
+            config["response_ms"] = response.response_ms
+            config["exact_model"] = response.model
+            config["role"] = response.choices[0].message.role
+        else:
+            config["completion_text"] = response["choices"][0]["text"]
         used_tokens = response.usage.total_tokens
-        call_cost = used_tokens*config["price_per_token"]
-        config["session_spent"] += call_cost
-        config["session_spent_text"] = f"{used_tokens} tokens ({round(call_cost, 5)}$)"
-        if not config["stop_after_one_request"]:
-            config["session_spent_text"] += f" (session: {round(config['session_spent'], 5)}$)"
         config["done"] = True
 
+    call_cost = used_tokens * config["price_per_token"]
+    config["session_spent"] += call_cost
+    config["session_spent_text"] = f"{used_tokens} tokens ({round(call_cost, 5)}$)"
+    config["status"] = f"Finished in {round(time.time() - start_time, 3)} s"
+
+    if not config["stop_after_one_request"]:
+        config["session_spent_text"] += f" (session: {round(config['session_spent'], 5)}$)"
+
     if config["stop_after_one_request"] and config["done"]:
-        config["status"] = f"Finished in {round(time.time() - start_time, 3)} s"
         shutdown_flask()
 
 
@@ -100,6 +124,7 @@ def openai_call(prompt: str = None):
     """API endpoint if app is started without arguments; Could be implemented w. input + button """
     global config
     config["input_prompt"] = prompt
+    config["status"] = "working .."
     threading.Thread(target=openai_call_thread).start()
 
     # hide API_KEY in returned config
@@ -110,12 +135,15 @@ def openai_call(prompt: str = None):
 @app.route('/update')
 def update():
     """Routine to fetch data, started with setInterval(getResults, interval) in index.html"""
+    global config
     return jsonify(config={key: val for key, val in config.items() if key != "api_key"})
 
 
 if __name__ == "__main__":
     if len(sys.argv) > 1:
         config["input_prompt"] = " ".join(sys.argv[1:])
+    else:
+        config["status"] = "waiting for queries: http://127.0.0.1:5000/openai_call/QUERY"
 
     webbrowser.open("http://127.0.0.1:5000")
     app.run(host="127.0.0.1", port=5000, debug=False)
