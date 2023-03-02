@@ -90,7 +90,7 @@
             dataType: "json",
             success: function (r) {
                 document.getElementById("input").innerHTML = r.config.input_prompt;
-                document.getElementById("result").innerHTML = r.config.completion_text;
+                document.getElementById("result").innerHTML = r.result;
                 document.getElementById("cost").innerHTML = r.config.session_spent_text;
                 document.getElementById("config").innerHTML = "<pre>" + JSON.stringify(r.config, null, 2) + "</pre>";
                 document.getElementById("status").innerHTML = r.config.status;

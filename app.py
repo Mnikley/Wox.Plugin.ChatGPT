@@ -10,7 +10,7 @@ import psutil
 from markdown import markdown
 
 config = {
-    "api_key": "insert-your-api-key-here",
+    "api_key": "insert-your-openai-api-key-here",
     "model": "gpt-3.5-turbo",  # check https://platform.openai.com/docs/models/ for other models
     "max_tokens": 64,  # maximum amount of returned tokens
     "temperature": 0.15,  # increases randomness
@@ -134,15 +134,18 @@ def openai_call(prompt: str = None):
     # hide API_KEY in returned config
     return jsonify(status="Started API call in thread",
                    config={key: val for key, val in config.items()
-                           if key not in ["api_key", "completion_text"]})
+                           if key not in ["api_key", "completion_text"]},
+                   result=None)
 
 
 @app.route('/update')
 def update():
     """Routine to fetch data, started with setInterval(getResults, interval) in index.html"""
     global config
-    return jsonify(config={key: val for key, val in config.items()
-                           if key not in ["api_key", "completion_text"]})
+    return jsonify(status="Update interval running",
+                   config={key: val for key, val in config.items()
+                           if key not in ["api_key", "completion_text"]},
+                   result=config["completion_text"])
 
 
 if __name__ == "__main__":
