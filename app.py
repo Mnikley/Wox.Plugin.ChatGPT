@@ -133,14 +133,16 @@ def openai_call(prompt: str = None):
 
     # hide API_KEY in returned config
     return jsonify(status="Started API call in thread",
-                   config={key: val for key, val in config.items() if key != "api_key"})
+                   config={key: val for key, val in config.items()
+                           if key not in ["api_key", "completion_text"]})
 
 
 @app.route('/update')
 def update():
     """Routine to fetch data, started with setInterval(getResults, interval) in index.html"""
     global config
-    return jsonify(config={key: val for key, val in config.items() if key != "api_key"})
+    return jsonify(config={key: val for key, val in config.items()
+                           if key not in ["api_key", "completion_text"]})
 
 
 if __name__ == "__main__":
