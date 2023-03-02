@@ -7,6 +7,7 @@ import threading
 import sys
 import webbrowser
 import psutil
+from markdown import markdown
 
 config = {
     "api_key": "insert-your-api-key-here",
@@ -91,14 +92,13 @@ def openai_call_thread():
                     config["completion_text"] += event["choices"][0]["delta"]["content"]
             else:
                 config["completion_text"] += event["choices"][0]["text"]
-        used_tokens = len(collected_events)
-        # config["session_spent_text"] = "N/A when using stream=True"
+        used_tokens = len(collected_events)  # unsure if 1 event equals 1 token; last event is empty
         config["done"] = True
 
     else:
         if chat_completion:
             config["completion_text"] = response["choices"][0]["message"]["content"]
-            # additional returns
+            # ChatCompletion has additional fields we can use
             config["response_ms"] = response.response_ms
             config["exact_model"] = response.model
             config["role"] = response.choices[0].message.role
@@ -107,6 +107,7 @@ def openai_call_thread():
         used_tokens = response.usage.total_tokens
         config["done"] = True
 
+    # calculate costs
     call_cost = used_tokens * config["price_per_token"]
     config["session_spent"] += call_cost
     config["session_spent_text"] = f"{used_tokens} tokens ({round(call_cost, 5)}$)"
@@ -114,6 +115,9 @@ def openai_call_thread():
 
     if not config["stop_after_one_request"]:
         config["session_spent_text"] += f" (session: {round(config['session_spent'], 5)}$)"
+
+    # convert markdown to html
+    config["completion_text"] = markdown(config["completion_text"])
 
     if config["stop_after_one_request"] and config["done"]:
         shutdown_flask()
