@@ -1,7 +1,7 @@
 # Wox launcher ChatGPT Plugin
 ![logo2](https://user-images.githubusercontent.com/75040444/221229322-f9f4ad07-befb-46aa-b442-720c2ac5e6ca.jpeg)
 
-A simple wrapper written in Python, HTML and CSS to utilize the OpenAI API that can be used as a Plugin for the awesome [Wox launcher](https://github.com/Wox-launcher/Wox). Uses Flask to display the results in a ChatGPT-themed locally-hosted webpage. Only tested on Windows with Python 3.10.
+Query the ChatGPT API from anywhere! This simple wrapper can be used as a Plugin for the awesome [Wox launcher](https://github.com/Wox-launcher/Wox). Uses Flask to display the results in a ChatGPT-themed locally-hosted webpage. Only tested on Windows with Python 3.10.
 
 ## Screenshots
 ![chatgpt_wox_plugin](https://user-images.githubusercontent.com/75040444/222425839-d88ef5a7-9074-473c-8cb1-12b42700f905.gif)
