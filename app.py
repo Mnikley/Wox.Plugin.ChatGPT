@@ -38,7 +38,7 @@ def index():
 
     if config["input_prompt"]:
         config["stop_after_one_request"] = True
-        # threading.Thread(target=openai_call_thread).start()
+        threading.Thread(target=openai_call_thread).start()
 
     return render_template('index.html')
 

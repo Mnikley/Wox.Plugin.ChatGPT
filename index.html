@@ -135,32 +135,32 @@
 
 
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
-<!--<script>-->
-<!--    const interval = 500;  // time in ms to fetch new data from backend-->
+<script>
+    const interval = 500;  // time in ms to fetch new data from backend
 
-<!--    function getResults() {-->
-<!--        $.ajax({-->
-<!--            url: "/update",-->
-<!--            type: "GET",-->
-<!--            dataType: "json",-->
-<!--            success: function (r) {-->
-<!--                document.getElementById("input").innerHTML = r.config.input_prompt;-->
-<!--                document.getElementById("result").innerHTML = r.result;-->
-<!--                document.getElementById("cost").innerHTML = r.config.session_spent_text;-->
-<!--                document.getElementById("config").innerHTML = "<pre>" + JSON.stringify(r.config, null, 2) + "</pre>";-->
-<!--                document.getElementById("status").innerHTML = r.config.status;-->
-<!--                if (r.config.done && r.config.stop_after_one_request) {-->
-<!--                    clearInterval(intervalRunner);-->
+    function getResults() {
+        $.ajax({
+            url: "/update",
+            type: "GET",
+            dataType: "json",
+            success: function (r) {
+                document.getElementById("input").innerHTML = r.config.input_prompt;
+                document.getElementById("result").innerHTML = r.result;
+                document.getElementById("cost").innerHTML = r.config.session_spent_text;
+                document.getElementById("config").innerHTML = "<pre>" + JSON.stringify(r.config, null, 2) + "</pre>";
+                document.getElementById("status").innerHTML = r.config.status;
+                if (r.config.done && r.config.stop_after_one_request) {
+                    clearInterval(intervalRunner);
 
-<!--                    var $li = $('<li>').text(r.config.input_prompt).addClass('history-query').addClass('active');-->
-<!--                    $('#queriesList').prepend($li);-->
-<!--                }-->
-<!--            }-->
-<!--        });-->
-<!--    }-->
+                    var $li = $('<li>').text(r.config.input_prompt).addClass('history-query').addClass('active');
+                    $('#queriesList').prepend($li);
+                }
+            }
+        });
+    }
 
-<!--    let intervalRunner = setInterval(getResults, interval);-->
-<!--</script>-->
+    let intervalRunner = setInterval(getResults, interval);
+</script>
 
 <script>
     window.onload = function() {
