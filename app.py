@@ -12,7 +12,7 @@ from markdown import markdown
 from history import QueryDB
 
 config = {
-    "api_key": "insert-your-openai-api-key-here",
+    "api_key": "insert-your-openai-api-key",
     "model": "gpt-3.5-turbo",  # check https://platform.openai.com/docs/models/ for other models
     "max_tokens": 512,  # maximum amount of returned tokens
     "temperature": 0.15,  # increases randomness
@@ -125,8 +125,8 @@ def openai_call_thread():
     # convert markdown to html
     config["completion_text"] = markdown(config["completion_text"])
 
-    if config["stop_after_one_request"] and config["done"]:
-        shutdown_flask()
+    # if config["stop_after_one_request"] and config["done"]:
+    #     shutdown_flask()
 
 
 @app.route("/openai_call/<string:prompt>")
@@ -171,6 +171,12 @@ def get_query(query_id: int):
                    data=query)
 
 
+@app.route('/close_process', methods=['GET'])
+def close_process():
+    shutdown_flask()
+    return jsonify(status='thread killed')
+
+
 if __name__ == "__main__":
     if len(sys.argv) > 1:
         config["input_prompt"] = " ".join(sys.argv[1:])
@@ -179,3 +185,5 @@ if __name__ == "__main__":
 
     webbrowser.open("http://127.0.0.1:5000")
     app.run(host="127.0.0.1", port=5000, debug=False)
+
+

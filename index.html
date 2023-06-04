@@ -198,6 +198,23 @@
                 });
             });
     }
+
+    window.addEventListener('beforeunload', function() {
+    // send request to server, trigger to kill thread
+    $.ajax({
+        url: '/close_process',
+        method: 'GET',
+        success: function(response) {
+            // handle response
+            console.log('thread killed');
+        },
+        error: function(xhr, status, error) {
+            // handle error
+            console.error('error when kill thread:', error);
+        }
+    });
+});
+
 </script>
 
 </body>
