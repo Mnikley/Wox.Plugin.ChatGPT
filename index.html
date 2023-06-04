@@ -8,13 +8,10 @@
             background-color: rgba(52, 53, 65);
             color: rgba(236, 236, 241, 100%);
             font-family: Arial, Helvetica, sans-serif;
+            margin: 0;
         }
 
         .header {
-            display: flex;
-            justify-content: center;
-            flex-direction: row;
-            margin: 20vh auto 4rem;
             font-size: 2.25rem;
             font-weight: 600;
             line-height: 2.5rem;
@@ -37,10 +34,6 @@
         }
 
         .centered {
-            display: flex;
-            justify-content: center;
-            margin-right: auto;
-            margin-left: auto;
         }
 
         .vertical-margin {
@@ -49,9 +42,6 @@
         }
 
         .card {
-            justify-content: center;
-            margin-right: auto;
-            margin-left: auto;
             border-radius: 0.375rem;
             border: 0 solid #d9d9e3;
             box-sizing: border-box;
@@ -76,51 +66,138 @@
         }
 
     </style>
+    <style>
+        .content {
+            display: flex;
+            flex-direction: row;
+        }
+        #sideboard {
+            width: 10%;
+            background: rgba(0, 0, 0, 0.5);
+        }
+
+        #queriesList {
+            padding-inline-start: 20px !important;
+        }
+
+        .history-query {
+            list-style: none;
+            height: 20px;
+            padding: 10px 0 10px 4px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .active {
+            background: gray;
+        }
+
+        .main {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            width: 90%;
+        }
+    </style>
     <title>ChatGPT API</title>
 </head>
 
 <body>
 
-<div class="header">ChatGPT API</div>
-<div class="centered">
-    <p><b>Input: </b>&nbsp
-        <span id="input" class="success"></span>
-    </p>
-</div>
-<div id="result" class="card"></div>
-<div class="secondary centered vertical-margin">
-    Status:&nbsp<span id="status" class="disabled"></span>
-</div>
-<div class="secondary centered vertical-margin">
-    Cost:&nbsp<span id="cost" class="disabled"></span>
-</div>
-<div class="secondary centered vertical-margin">
-    <span id="config"></span>
+<div class="content">
+    <div id="sideboard">
+        <ul id="queriesList"></ul>
+    </div>
+
+        <div class="main">
+        <div class="header">ChatGPT API</div>
+        <div class="centered">
+            <p><b>Input: </b>&nbsp
+                <span id="input" class="success"></span>
+            </p>
+        </div>
+        <div id="result" class="card"></div>
+        <div class="secondary centered vertical-margin">
+            Status:&nbsp<span id="status" class="disabled"></span>
+        </div>
+        <div class="secondary centered vertical-margin">
+            Cost:&nbsp<span id="cost" class="disabled"></span>
+        </div>
+        <div class="secondary centered vertical-margin">
+            <span id="config"></span>
+        </div>
+    </div>
 </div>
 
-<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+<!--<script>-->
+<!--    const interval = 500;  // time in ms to fetch new data from backend-->
+
+<!--    function getResults() {-->
+<!--        $.ajax({-->
+<!--            url: "/update",-->
+<!--            type: "GET",-->
+<!--            dataType: "json",-->
+<!--            success: function (r) {-->
+<!--                document.getElementById("input").innerHTML = r.config.input_prompt;-->
+<!--                document.getElementById("result").innerHTML = r.result;-->
+<!--                document.getElementById("cost").innerHTML = r.config.session_spent_text;-->
+<!--                document.getElementById("config").innerHTML = "<pre>" + JSON.stringify(r.config, null, 2) + "</pre>";-->
+<!--                document.getElementById("status").innerHTML = r.config.status;-->
+<!--                if (r.config.done && r.config.stop_after_one_request) {-->
+<!--                    clearInterval(intervalRunner);-->
+
+<!--                    var $li = $('<li>').text(r.config.input_prompt).addClass('history-query').addClass('active');-->
+<!--                    $('#queriesList').prepend($li);-->
+<!--                }-->
+<!--            }-->
+<!--        });-->
+<!--    }-->
+
+<!--    let intervalRunner = setInterval(getResults, interval);-->
+<!--</script>-->
+
 <script>
-    const interval = 500;  // time in ms to fetch new data from backend
-
-    function getResults() {
+    window.onload = function() {
         $.ajax({
-            url: "/update",
+            url: "/get_history",
             type: "GET",
             dataType: "json",
             success: function (r) {
-                document.getElementById("input").innerHTML = r.config.input_prompt;
-                document.getElementById("result").innerHTML = r.result;
-                document.getElementById("cost").innerHTML = r.config.session_spent_text;
-                document.getElementById("config").innerHTML = "<pre>" + JSON.stringify(r.config, null, 2) + "</pre>";
-                document.getElementById("status").innerHTML = r.config.status;
-                if (r.config.done && r.config.stop_after_one_request) {
-                    clearInterval(intervalRunner);
-                }
+                var $queriesList = $('#queriesList')
+                $.each(r.data, function(index, item) {
+                    var $li = $('<li>').text(item[1]).addClass('history-query');
+                    $queriesList.append($li);
+                })
             }
         });
-    }
 
-    let intervalRunner = setInterval(getResults, interval);
+        $('#queriesList').on('click', 'li', function() {
+                // remove active class from other li
+                $('#queriesList li').removeClass('active');
+
+                // add active class to the clicked li
+                $(this).addClass('active');
+                $.ajax({
+                    url: "/get_query/".concat("", $(this).index().toString()),
+                    type: "GET",
+                    dataType: "json",
+                    success: function (result) {
+                        var r = result.data;
+                        document.getElementById("input").innerHTML = r[1];
+                        document.getElementById("result").innerHTML = r[2];
+                        document.getElementById("cost").innerHTML = r[3];
+                        document.getElementById("config").innerHTML = "<pre>" + JSON.stringify(JSON.parse(r[4]), null, 2) + "</pre>";
+                        document.getElementById("status").innerHTML = r[5];
+                    }
+                });
+            });
+    }
 </script>
 
 </body>

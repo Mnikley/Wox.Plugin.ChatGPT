@@ -9,8 +9,10 @@ import webbrowser
 import psutil
 from markdown import markdown
 
+from history import QueryDB
+
 config = {
-    "api_key": "insert-your-openai-api-key-here",
+    "api_key": "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",
     "model": "gpt-3.5-turbo",  # check https://platform.openai.com/docs/models/ for other models
     "max_tokens": 512,  # maximum amount of returned tokens
     "temperature": 0.15,  # increases randomness
@@ -36,7 +38,7 @@ def index():
 
     if config["input_prompt"]:
         config["stop_after_one_request"] = True
-        threading.Thread(target=openai_call_thread).start()
+        # threading.Thread(target=openai_call_thread).start()
 
     return render_template('index.html')
 
@@ -116,6 +118,10 @@ def openai_call_thread():
     if not config["stop_after_one_request"]:
         config["session_spent_text"] += f" (session: {round(config['session_spent'], 5)}$)"
 
+    # record query history
+    query_db = QueryDB()
+    query_db.insert_query(config)
+
     # convert markdown to html
     config["completion_text"] = markdown(config["completion_text"])
 
@@ -142,10 +148,27 @@ def openai_call(prompt: str = None):
 def update():
     """Routine to fetch data, started with setInterval(getResults, interval) in index.html"""
     global config
+
     return jsonify(status="Update interval running",
                    config={key: val for key, val in config.items()
                            if key not in ["api_key", "completion_text"]},
                    result=config["completion_text"])
+
+
+@app.route('/get_history')
+def get_history():
+    query_db = QueryDB()
+    query_history = query_db.get_all()
+    return jsonify(status="Get history queries",
+                   data=query_history)
+
+
+@app.route('/get_query/<int:query_id>')
+def get_query(query_id: int):
+    query_db = QueryDB()
+    query = query_db.get_by_id(query_id)
+    return jsonify(status="Get query by id",
+                   data=query)
 
 
 if __name__ == "__main__":
