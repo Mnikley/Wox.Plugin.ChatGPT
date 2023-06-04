@@ -12,7 +12,7 @@ from markdown import markdown
 from history import QueryDB
 
 config = {
-    "api_key": "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",
+    "api_key": "insert-your-openai-api-key-here",
     "model": "gpt-3.5-turbo",  # check https://platform.openai.com/docs/models/ for other models
     "max_tokens": 512,  # maximum amount of returned tokens
     "temperature": 0.15,  # increases randomness
