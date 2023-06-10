@@ -5,6 +5,7 @@ import openai
 import time
 import threading
 import sys
+import traceback
 import webbrowser
 import psutil
 from markdown import markdown
@@ -83,8 +84,10 @@ def openai_call_thread():
                                                 stream=config["stream"])
     except Exception as exc:
         config["done"] = True
-        config["status"] = f"<span class='error'>Error: {exc}</span>"
+        traceback_lines = traceback.format_exc().splitlines()
+        config["status"] = f"<span class='error'>{traceback_lines[-1]}</span>"
         shutdown_flask()
+        return
 
     if config["stream"]:
         for event in response:
