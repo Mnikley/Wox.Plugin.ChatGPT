@@ -154,6 +154,7 @@
                     clearInterval(intervalRunner);
 
                     var $li = $('<li>').text(r.config.input_prompt).addClass('history-query').addClass('active');
+                    $li.attr('data-query-id', r.config.query_id);  // Set the data-query-id attribute
                     $('#queriesList').prepend($li);
                 }
             }
@@ -161,9 +162,7 @@
     }
 
     let intervalRunner = setInterval(getResults, interval);
-</script>
 
-<script>
     window.onload = function() {
         $.ajax({
             url: "/get_history",
@@ -173,6 +172,7 @@
                 var $queriesList = $('#queriesList')
                 $.each(r.data, function(index, item) {
                     var $li = $('<li>').text(item[1]).addClass('history-query');
+                    $li.attr('data-query-id', item[0]);  // Set the data-query-id attribute
                     $queriesList.append($li);
                 })
             }
@@ -184,11 +184,13 @@
 
                 // add active class to the clicked li
                 $(this).addClass('active');
+                var queryId = $(this).data('query-id');  // Retrieve the data-query-id attribute
                 $.ajax({
-                    url: "/get_query/".concat("", $(this).index().toString()),
+                    url: "/get_query/" + queryId,  // Use the queryId as the parameter
                     type: "GET",
                     dataType: "json",
                     success: function (result) {
+                        clearInterval(intervalRunner);
                         var r = result.data;
                         document.getElementById("input").innerHTML = r[1];
                         document.getElementById("result").innerHTML = r[2];

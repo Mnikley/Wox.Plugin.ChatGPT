@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """Wrapper for OpenAI API for Language Models"""
-from flask import Flask, render_template, jsonify
+from flask import Flask, render_template, jsonify, redirect, url_for
 import openai
 import time
 import threading
@@ -122,14 +122,17 @@ def openai_call_thread():
         config["session_spent_text"] += f" (session: {round(config['session_spent'], 5)}$)"
 
     # record query history
-    query_db = QueryDB()
-    query_db.insert_query(config)
+    with QueryDB() as query_db:
+        query_db.insert_query(config)
 
     # convert markdown to html
     config["completion_text"] = markdown(config["completion_text"])
 
-    # if config["stop_after_one_request"] and config["done"]:
-    #     shutdown_flask()
+    # Update the config variable after the API call is complete
+    config["response"] = response
+
+    if config["stop_after_one_request"] and config["done"]:
+        shutdown_flask()
 
 
 @app.route("/openai_call/<string:prompt>")
@@ -140,38 +143,42 @@ def openai_call(prompt: str = None):
     config["status"] = "working .."
     threading.Thread(target=openai_call_thread).start()
 
+    # TODO: unsure how to solve this to start intervalRunner again after displaying history elements
+    # if config.get("history_active", None):
+    #     config["history_active"] = False
+    #     return render_template("index.html")
+
     # hide API_KEY in returned config
     return jsonify(status="Started API call in thread",
                    config={key: val for key, val in config.items()
-                           if key not in ["api_key", "completion_text"]},
-                   result=None)
+                           if key not in ["api_key", "completion_text", "history_active"]},
+                   result=config.get("response"))
 
 
 @app.route('/update')
 def update():
     """Routine to fetch data, started with setInterval(getResults, interval) in index.html"""
-    global config
-
     return jsonify(status="Update interval running",
                    config={key: val for key, val in config.items()
                            if key not in ["api_key", "completion_text"]},
-                   result=config["completion_text"])
+                   result=config.get("completion_text"))
 
 
 @app.route('/get_history')
 def get_history():
-    query_db = QueryDB()
-    query_history = query_db.get_all()
+    with QueryDB() as query_db:
+        query_history = query_db.get_all()
     return jsonify(status="Get history queries",
                    data=query_history)
 
 
 @app.route('/get_query/<int:query_id>')
 def get_query(query_id: int):
-    query_db = QueryDB()
-    query = query_db.get_by_id(query_id)
-    return jsonify(status="Get query by id",
-                   data=query)
+    global config
+    with QueryDB() as query_db:
+        query = query_db.get_by_id(query_id-1)
+    # config["history_active"] = True  # TODO: fix
+    return jsonify(status="Get query by id", data=query)
 
 
 @app.route('/close_process', methods=['GET'])
