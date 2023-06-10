@@ -26,14 +26,14 @@ class QueryDB:
         if not self.conn or not self.cursor:
             self.connect()
 
-        del config['api_key']
+        clean_config = {k: v for k, v in config.items() if k != "api_key"}
         self.cursor.execute("INSERT INTO queries (input, result, cost, config, status) "
                             "VALUES (?, ?, ?, ?, ?)",
-                            (config['input_prompt'],
-                             config['completion_text'],
-                             config['session_spent_text'],
-                             json.dumps(config),
-                             config['status']))
+                            (clean_config['input_prompt'],
+                             clean_config['completion_text'],
+                             clean_config['session_spent_text'],
+                             json.dumps(clean_config),
+                             clean_config['status']))
         self.conn.commit()
         self.conn.close()
 
