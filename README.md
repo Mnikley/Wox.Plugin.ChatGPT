@@ -26,7 +26,7 @@ Alternatively you can run the script directly via `python app.py [QUERY]`
 ## Configuration
  - `api_key:` Your OpenAI API key
  - `model:` Used model (default: `gpt-3.5-turbo`, check https://platform.openai.com/docs/models/)
- - `max_tokens:` Maximum amount of returned tokens (longer = more expensive; default: `32`)
+ - `max_tokens:` Maximum amount of returned tokens (longer = more expensive; default: `512`)
  - `temperature:` Increase randomness (default: `0.15`)
  - `stream:`: Stream response or wait for entire processed text (default: `True`)
  - `price_per_token:` Used for estimating costs (default: `0.002 / 1000` based on gpt-3.5-turbo)
