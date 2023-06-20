@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """Wrapper for OpenAI API for Language Models"""
-from flask import Flask, render_template, jsonify, redirect, url_for
+from flask import Flask, render_template, jsonify
 import openai
 import time
 import threading
@@ -13,7 +13,7 @@ from markdown import markdown
 from history import QueryDB
 
 config = {
-    "api_key": "insert-your-openai-api-key",
+    "api_key": "insert-api-key-here",
     "model": "gpt-3.5-turbo",  # check https://platform.openai.com/docs/models/ for other models
     "max_tokens": 512,  # maximum amount of returned tokens
     "temperature": 0.15,  # increases randomness
@@ -25,7 +25,8 @@ config = {
     "stop_after_one_request": False,
     "done": False,
     "completion_text": "",
-    "input_prompt": ""
+    "input_prompt": "",
+    "last_history_id": False,
 }
 openai.api_key = config["api_key"]
 app = Flask(__name__, template_folder=".")
@@ -48,7 +49,7 @@ def shutdown_flask():
     for p in psutil.process_iter():
         if p.name().startswith("python"):  # might need to exchange for sys.executable
             if len(p.cmdline()) > 2 and p.cmdline()[1] == "app.py":
-                time.sleep(0.5)
+                time.sleep(1.5)
                 p.kill()
 
 
@@ -124,12 +125,10 @@ def openai_call_thread():
     # record query history
     with QueryDB() as query_db:
         query_db.insert_query(config)
+        config["last_history_id"] = query_db.cursor.lastrowid
 
     # convert markdown to html
     config["completion_text"] = markdown(config["completion_text"])
-
-    # Update the config variable after the API call is complete
-    config["response"] = response
 
     if config["stop_after_one_request"] and config["done"]:
         shutdown_flask()
@@ -143,15 +142,10 @@ def openai_call(prompt: str = None):
     config["status"] = "working .."
     threading.Thread(target=openai_call_thread).start()
 
-    # TODO: unsure how to solve this to start intervalRunner again after displaying history elements
-    # if config.get("history_active", None):
-    #     config["history_active"] = False
-    #     return render_template("index.html")
-
     # hide API_KEY in returned config
     return jsonify(status="Started API call in thread",
                    config={key: val for key, val in config.items()
-                           if key not in ["api_key", "completion_text", "history_active"]},
+                           if key not in ["api_key", "completion_text"]},
                    result=config.get("response"))
 
 
@@ -177,7 +171,6 @@ def get_query(query_id: int):
     global config
     with QueryDB() as query_db:
         query = query_db.get_by_id(query_id-1)
-    # config["history_active"] = True  # TODO: fix
     return jsonify(status="Get query by id", data=query)
 
 

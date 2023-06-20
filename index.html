@@ -138,6 +138,8 @@
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
 <script>
     const interval = 500;  // time in ms to fetch new data from backend
+    let localHistory = {};  // in case flask is stopped after a one-time query, history needs to be available offline
+    let currentData = {};
 
     function getResults() {
         $.ajax({
@@ -145,17 +147,45 @@
             type: "GET",
             dataType: "json",
             success: function (r) {
-                document.getElementById("input").innerHTML = r.config.input_prompt;
-                document.getElementById("result").innerHTML = r.result;
-                document.getElementById("cost").innerHTML = r.config.session_spent_text;
-                document.getElementById("config").innerHTML = "<pre>" + JSON.stringify(r.config, null, 2) + "</pre>";
-                document.getElementById("status").innerHTML = r.config.status;
-                if (r.config.done && r.config.stop_after_one_request) {
-                    clearInterval(intervalRunner);
+                document.getElementById("input").innerHTML = currentData["input"] ?? "";
+                document.getElementById("result").innerHTML = currentData["result"] ?? "";
+                document.getElementById("cost").innerHTML = currentData["cost"] ?? "";
+                document.getElementById("config").innerHTML = currentData["config"] ?? "";
+                document.getElementById("status").innerHTML = currentData["status"] ?? "";
 
-                    var $li = $('<li>').text(r.config.input_prompt).addClass('history-query').addClass('active');
-                    $li.attr('data-query-id', r.config.query_id);  // Set the data-query-id attribute
-                    $('#queriesList').prepend($li);
+                // get current ID from history side panel
+                let currentId = $('#queriesList li:first').attr("data-query-id");
+
+                // update currently displayed data
+                currentData = {
+                    "input": r.config.input_prompt,
+                    "result": r.result,
+                    "cost": r.config.session_spent_text,
+                    "config": "<pre>" + JSON.stringify(r.config, null, 2) + "</pre>",
+                    "status": r.config.status,
+                };
+
+                // if current ID differs from config
+                if (r.config.last_history_id && r.config.last_history_id !== currentId) {
+
+                    // create new link, add to history sidebar after 500ms
+                    setTimeout(() => {
+                        let $li = $('<li>').text(r.config.input_prompt).addClass('history-query').addClass('active');
+                        $li.attr('data-query-id', r.config.last_history_id);  // Set the data-query-id attribute
+
+                        // add history element to list
+                        $('#queriesList').prepend($li);
+
+                        // add data to local history
+                        localHistory[r.config.last_history_id] = currentData;
+                    }, 500);
+
+                }
+
+                if (r.config.done && r.config.stop_after_one_request) {
+                    setTimeout(() => {
+                        clearInterval(intervalRunner);
+                    }, 500);
                 }
             }
         });
@@ -169,11 +199,18 @@
             type: "GET",
             dataType: "json",
             success: function (r) {
-                var $queriesList = $('#queriesList')
+                let $queriesList = $('#queriesList')
                 $.each(r.data, function(index, item) {
-                    var $li = $('<li>').text(item[1]).addClass('history-query');
+                    let $li = $('<li>').text(item[1]).addClass('history-query');
                     $li.attr('data-query-id', item[0]);  // Set the data-query-id attribute
                     $queriesList.append($li);
+                    localHistory[item[0]] = {
+                        "input": item[1],
+                        "result": item[2],
+                        "cost": item[3],
+                        "config": item[4],
+                        "status": item[5]
+                    };
                 })
             }
         });
@@ -184,21 +221,41 @@
 
                 // add active class to the clicked li
                 $(this).addClass('active');
-                var queryId = $(this).data('query-id');  // Retrieve the data-query-id attribute
-                $.ajax({
-                    url: "/get_query/" + queryId,  // Use the queryId as the parameter
-                    type: "GET",
-                    dataType: "json",
-                    success: function (result) {
-                        clearInterval(intervalRunner);
-                        var r = result.data;
-                        document.getElementById("input").innerHTML = r[1];
-                        document.getElementById("result").innerHTML = r[2];
-                        document.getElementById("cost").innerHTML = r[3];
-                        document.getElementById("config").innerHTML = "<pre>" + JSON.stringify(JSON.parse(r[4]), null, 2) + "</pre>";
-                        document.getElementById("status").innerHTML = r[5];
-                    }
-                });
+                const queryId = $(this).data('query-id');  // Retrieve the data-query-id attribute
+                console.log(queryId);
+
+                // get data from local history
+                let historyData = localHistory[queryId];
+
+                let config = null;
+                if (historyData["config"].startsWith("<pre>")) {
+                    config = historyData["config"];
+                } else {
+                    const configObject = JSON.parse(historyData["config"]);
+
+                    // Exclude the "completion_text" key from the stringified JSON
+                    const formattedConfig = JSON.stringify(configObject, (key, value) => {
+                      if (key === "completion_text") {
+                        return undefined; // Exclude the key from the stringification
+                      }
+                      return value; // Include other keys as usual
+                    }, 2);
+                    config = "<pre>" + formattedConfig + "</pre>";
+                }
+
+
+                currentData = {
+                        "input": historyData["input"],
+                        "result": historyData["result"],
+                        "cost": historyData["cost"],
+                        "config": config,
+                        "status": historyData["status"],
+                    };
+                document.getElementById("input").innerHTML = currentData["input"];
+                document.getElementById("result").innerHTML = currentData["result"];
+                document.getElementById("cost").innerHTML = currentData["cost"];
+                document.getElementById("config").innerHTML = currentData["config"];
+                document.getElementById("status").innerHTML = currentData["status"];
             });
     }
 
