@@ -5,12 +5,15 @@ import openai
 import time
 import threading
 import sys
+import traceback
 import webbrowser
 import psutil
 from markdown import markdown
 
+from history import QueryDB
+
 config = {
-    "api_key": "insert-your-openai-api-key-here",
+    "api_key": "insert-api-key-here",
     "model": "gpt-3.5-turbo",  # check https://platform.openai.com/docs/models/ for other models
     "max_tokens": 512,  # maximum amount of returned tokens
     "temperature": 0.15,  # increases randomness
@@ -22,7 +25,8 @@ config = {
     "stop_after_one_request": False,
     "done": False,
     "completion_text": "",
-    "input_prompt": ""
+    "input_prompt": "",
+    "last_history_id": False,
 }
 openai.api_key = config["api_key"]
 app = Flask(__name__, template_folder=".")
@@ -45,7 +49,7 @@ def shutdown_flask():
     for p in psutil.process_iter():
         if p.name().startswith("python"):  # might need to exchange for sys.executable
             if len(p.cmdline()) > 2 and p.cmdline()[1] == "app.py":
-                time.sleep(0.5)
+                time.sleep(1.5)
                 p.kill()
 
 
@@ -81,8 +85,10 @@ def openai_call_thread():
                                                 stream=config["stream"])
     except Exception as exc:
         config["done"] = True
-        config["status"] = f"<span class='error'>Error: {exc}</span>"
+        traceback_lines = traceback.format_exc().splitlines()
+        config["status"] = f"<span class='error'>{traceback_lines[-1]}</span>"
         shutdown_flask()
+        return
 
     if config["stream"]:
         for event in response:
@@ -116,6 +122,11 @@ def openai_call_thread():
     if not config["stop_after_one_request"]:
         config["session_spent_text"] += f" (session: {round(config['session_spent'], 5)}$)"
 
+    # record query history
+    with QueryDB() as query_db:
+        query_db.insert_query(config)
+        config["last_history_id"] = query_db.cursor.lastrowid
+
     # convert markdown to html
     config["completion_text"] = markdown(config["completion_text"])
 
@@ -135,17 +146,38 @@ def openai_call(prompt: str = None):
     return jsonify(status="Started API call in thread",
                    config={key: val for key, val in config.items()
                            if key not in ["api_key", "completion_text"]},
-                   result=None)
+                   result=config.get("response"))
 
 
 @app.route('/update')
 def update():
     """Routine to fetch data, started with setInterval(getResults, interval) in index.html"""
-    global config
     return jsonify(status="Update interval running",
                    config={key: val for key, val in config.items()
                            if key not in ["api_key", "completion_text"]},
-                   result=config["completion_text"])
+                   result=config.get("completion_text"))
+
+
+@app.route('/get_history')
+def get_history():
+    with QueryDB() as query_db:
+        query_history = query_db.get_all()
+    return jsonify(status="Get history queries",
+                   data=query_history)
+
+
+@app.route('/get_query/<int:query_id>')
+def get_query(query_id: int):
+    global config
+    with QueryDB() as query_db:
+        query = query_db.get_by_id(query_id-1)
+    return jsonify(status="Get query by id", data=query)
+
+
+@app.route('/close_process', methods=['GET'])
+def close_process():
+    shutdown_flask()
+    return jsonify(status='thread killed')
 
 
 if __name__ == "__main__":
@@ -156,3 +188,5 @@ if __name__ == "__main__":
 
     webbrowser.open("http://127.0.0.1:5000")
     app.run(host="127.0.0.1", port=5000, debug=False)
+
+

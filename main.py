@@ -4,7 +4,6 @@ import subprocess
 
 
 class ChatGPTPlugin(Wox):
-
     # query is default function to receive realtime keystrokes from wox launcher
     def query(self, query):
         results = []
@@ -22,7 +21,10 @@ class ChatGPTPlugin(Wox):
         return results
 
     def take_action(self, query):
-        subprocess.Popen(["python", "app.py", query]).wait()
+        # subprocess.Popen(["python", "app.py", query]).wait()
+
+        ## no cmd window
+        subprocess.Popen(["python", "app.py", query], creationflags=subprocess.CREATE_NO_WINDOW).wait()
 
 
 if __name__ == "__main__":

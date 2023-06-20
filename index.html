@@ -8,13 +8,10 @@
             background-color: rgba(52, 53, 65);
             color: rgba(236, 236, 241, 100%);
             font-family: Arial, Helvetica, sans-serif;
+            margin: 0;
         }
 
         .header {
-            display: flex;
-            justify-content: center;
-            flex-direction: row;
-            margin: 20vh auto 4rem;
             font-size: 2.25rem;
             font-weight: 600;
             line-height: 2.5rem;
@@ -37,10 +34,6 @@
         }
 
         .centered {
-            display: flex;
-            justify-content: center;
-            margin-right: auto;
-            margin-left: auto;
         }
 
         .vertical-margin {
@@ -49,9 +42,6 @@
         }
 
         .card {
-            justify-content: center;
-            margin-right: auto;
-            margin-left: auto;
             border-radius: 0.375rem;
             border: 0 solid #d9d9e3;
             box-sizing: border-box;
@@ -76,31 +66,80 @@
         }
 
     </style>
+    <style>
+        .content {
+            display: flex;
+            flex-direction: row;
+        }
+        #sideboard {
+            width: 10%;
+            background: rgba(0, 0, 0, 0.5);
+        }
+
+        #queriesList {
+            padding-inline-start: 20px !important;
+        }
+
+        .history-query {
+            list-style: none;
+            height: 20px;
+            padding: 10px 0 10px 4px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            cursor: pointer;
+        }
+
+        .active {
+            background: gray;
+        }
+
+        .main {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            width: 90%;
+        }
+    </style>
     <title>ChatGPT API</title>
 </head>
 
 <body>
 
-<div class="header">ChatGPT API</div>
-<div class="centered">
-    <p><b>Input: </b>&nbsp
-        <span id="input" class="success"></span>
-    </p>
-</div>
-<div id="result" class="card"></div>
-<div class="secondary centered vertical-margin">
-    Status:&nbsp<span id="status" class="disabled"></span>
-</div>
-<div class="secondary centered vertical-margin">
-    Cost:&nbsp<span id="cost" class="disabled"></span>
-</div>
-<div class="secondary centered vertical-margin">
-    <span id="config"></span>
+<div class="content">
+    <div id="sideboard">
+        <ul id="queriesList"></ul>
+    </div>
+
+        <div class="main">
+        <div class="header">ChatGPT API</div>
+        <div class="centered">
+            <p><b>Input: </b>&nbsp
+                <span id="input" class="success"></span>
+            </p>
+        </div>
+        <div id="result" class="card"></div>
+        <div class="secondary centered vertical-margin">
+            Status:&nbsp<span id="status" class="disabled"></span>
+        </div>
+        <div class="secondary centered vertical-margin">
+            Cost:&nbsp<span id="cost" class="disabled"></span>
+        </div>
+        <div class="secondary centered vertical-margin">
+            <span id="config"></span>
+        </div>
+    </div>
 </div>
 
-<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
 <script>
     const interval = 500;  // time in ms to fetch new data from backend
+    let localHistory = {};  // in case flask is stopped after a one-time query, history needs to be available offline
+    let currentData = {};
 
     function getResults() {
         $.ajax({
@@ -108,19 +147,134 @@
             type: "GET",
             dataType: "json",
             success: function (r) {
-                document.getElementById("input").innerHTML = r.config.input_prompt;
-                document.getElementById("result").innerHTML = r.result;
-                document.getElementById("cost").innerHTML = r.config.session_spent_text;
-                document.getElementById("config").innerHTML = "<pre>" + JSON.stringify(r.config, null, 2) + "</pre>";
-                document.getElementById("status").innerHTML = r.config.status;
+                document.getElementById("input").innerHTML = currentData["input"] ?? "";
+                document.getElementById("result").innerHTML = currentData["result"] ?? "";
+                document.getElementById("cost").innerHTML = currentData["cost"] ?? "";
+                document.getElementById("config").innerHTML = currentData["config"] ?? "";
+                document.getElementById("status").innerHTML = currentData["status"] ?? "";
+
+                // get current ID from history side panel
+                let currentId = $('#queriesList li:first').attr("data-query-id");
+
+                // update currently displayed data
+                currentData = {
+                    "input": r.config.input_prompt,
+                    "result": r.result,
+                    "cost": r.config.session_spent_text,
+                    "config": "<pre>" + JSON.stringify(r.config, null, 2) + "</pre>",
+                    "status": r.config.status,
+                };
+
+                // if current ID differs from config
+                if (r.config.last_history_id && r.config.last_history_id !== currentId) {
+
+                    // create new link, add to history sidebar after 500ms
+                    setTimeout(() => {
+                        let $li = $('<li>').text(r.config.input_prompt).addClass('history-query').addClass('active');
+                        $li.attr('data-query-id', r.config.last_history_id);  // Set the data-query-id attribute
+
+                        // add history element to list
+                        $('#queriesList').prepend($li);
+
+                        // add data to local history
+                        localHistory[r.config.last_history_id] = currentData;
+                    }, 500);
+
+                }
+
                 if (r.config.done && r.config.stop_after_one_request) {
-                    clearInterval(intervalRunner);
+                    setTimeout(() => {
+                        clearInterval(intervalRunner);
+                    }, 500);
                 }
             }
         });
     }
 
     let intervalRunner = setInterval(getResults, interval);
+
+    window.onload = function() {
+        $.ajax({
+            url: "/get_history",
+            type: "GET",
+            dataType: "json",
+            success: function (r) {
+                let $queriesList = $('#queriesList')
+                $.each(r.data, function(index, item) {
+                    let $li = $('<li>').text(item[1]).addClass('history-query');
+                    $li.attr('data-query-id', item[0]);  // Set the data-query-id attribute
+                    $queriesList.append($li);
+                    localHistory[item[0]] = {
+                        "input": item[1],
+                        "result": item[2],
+                        "cost": item[3],
+                        "config": item[4],
+                        "status": item[5]
+                    };
+                })
+            }
+        });
+
+        $('#queriesList').on('click', 'li', function() {
+                // remove active class from other li
+                $('#queriesList li').removeClass('active');
+
+                // add active class to the clicked li
+                $(this).addClass('active');
+                const queryId = $(this).data('query-id');  // Retrieve the data-query-id attribute
+                console.log(queryId);
+
+                // get data from local history
+                let historyData = localHistory[queryId];
+
+                let config = null;
+                if (historyData["config"].startsWith("<pre>")) {
+                    config = historyData["config"];
+                } else {
+                    const configObject = JSON.parse(historyData["config"]);
+
+                    // Exclude the "completion_text" key from the stringified JSON
+                    const formattedConfig = JSON.stringify(configObject, (key, value) => {
+                      if (key === "completion_text") {
+                        return undefined; // Exclude the key from the stringification
+                      }
+                      return value; // Include other keys as usual
+                    }, 2);
+                    config = "<pre>" + formattedConfig + "</pre>";
+                }
+
+
+                currentData = {
+                        "input": historyData["input"],
+                        "result": historyData["result"],
+                        "cost": historyData["cost"],
+                        "config": config,
+                        "status": historyData["status"],
+                    };
+                document.getElementById("input").innerHTML = currentData["input"];
+                document.getElementById("result").innerHTML = currentData["result"];
+                document.getElementById("cost").innerHTML = currentData["cost"];
+                document.getElementById("config").innerHTML = currentData["config"];
+                document.getElementById("status").innerHTML = currentData["status"];
+            });
+    }
+
+    window.addEventListener('beforeunload', function() {
+    // send request to server, trigger to kill thread
+    $.ajax({
+        url: '/close_process',
+        method: 'GET',
+        success: function(response) {
+            // handle response
+            console.log('thread killed');
+        },
+        error: function(xhr, status, error) {
+            // handle error
+            console.error('error when kill thread:', error);
+        }
+    });
+});
+
 </script>
 
 </body>
